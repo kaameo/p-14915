@@ -1,19 +1,17 @@
 package com.back.faq.repository;
 
 import com.back.faq.entity.Faq;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.data.repository.Repository;
-import org.springframework.data.repository.query.Param;
 
-import java.util.List;
+import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.r2dbc.repository.R2dbcRepository;
+import reactor.core.publisher.Flux;
 
-public interface FaqRepository extends CrudRepository<Faq, Long> {
+public interface FaqRepository extends R2dbcRepository<Faq, Long> {
 
-    @Query(value = """
-            select * from faq
-            where question &@~ :keyword or answer &@~ :keyword
-            """, nativeQuery = true)
-    List<Faq> searchByKeyword(@Param("keyword") String keyword);
+    @Query("""
+            SELECT * FROM faq
+            WHERE pgroonga_match_text(question, :keyword)
+               OR pgroonga_match_text(answer, :keyword)
+            """)
+    Flux<Faq> searchByKeyword(String keyword);
 }
