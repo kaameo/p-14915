@@ -6,7 +6,7 @@ plugins {
 
 group = "com"
 version = "0.0.1-SNAPSHOT"
-description = "p-14915"
+description = "Spring AI + JPA + PGroonga - FAQ 검색 챗봇 구현"
 
 java {
     toolchain {
