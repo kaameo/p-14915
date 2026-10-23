@@ -18,6 +18,6 @@ public class FaqService {
     public List<Faq> searchFaq(
             @ToolParam(description = "검색할 키워드 (예: 배송, 환불, 회원가입)") String keyword
     ) {
-        return faqRepository.searchByKeyword(keyword);
-    };
+        return faqRepository.searchByKeyword(keyword).collectList().block();
+    }
 }

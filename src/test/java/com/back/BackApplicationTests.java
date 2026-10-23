@@ -1,6 +1,5 @@
 package com.back;
 
-import com.back.ai.service.ChatService;
 import com.back.faq.entity.Faq;
 import com.back.faq.repository.FaqRepository;
 import com.back.faq.service.FaqService;
@@ -13,13 +12,14 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @Import(TestcontainersConfiguration.class)
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @AutoConfigureWebTestClient(timeout = "120s")
 class BackApplicationTests {
@@ -29,12 +29,6 @@ class BackApplicationTests {
     private FaqService faqService;
     @Autowired
     private WebTestClient webTestClient;
-    @Autowired
-    ChatService chatService;
-
-    @Test
-    void contextLoads() {
-    }
 
     @Test
     @DisplayName("FAQ 전문 검색 테스트")
@@ -54,20 +48,23 @@ class BackApplicationTests {
     }
 
     @Test
-    @DisplayName("FAQ 기반 AI 챗봇 테스트")
+    @DisplayName("PGroonga FTS 검색 테스트")
     void t2() {
-        // given
-        String userMessage = "배송은 얼마나 걸려요?";
+        StepVerifier.create(faqRepository.searchByKeyword("배송").collectList())
+                .assertNext(results -> {
+                    assertFalse(results.isEmpty());
+                    assertTrue(results.stream()
+                            .anyMatch(faq -> faq.getQuestion().contains("배송") || faq.getAnswer().contains("배송")));
+                })
+                .verifyComplete();
+    }
 
-        // when & then
-        String response = chatService.streamChatResponse(userMessage)
-                .collectList()
-                .map(list -> String.join("", list))
-                .block();
-
-        assertNotNull(response);
-        assertFalse(response.isEmpty());
-        System.out.println("AI 응답: " + response);
+    @Test
+    @DisplayName("FaqService searchFaq 테스트")
+    void t2_service() {
+        // FaqService는 내부에서 block()으로 동기 처리
+        List<Faq> results = faqService.searchFaq("배송");
+        assertFalse(results.isEmpty());
     }
 
     @Test
@@ -91,5 +88,34 @@ class BackApplicationTests {
                     System.out.println("SSE 응답: " + response);
                 })
                 .block();
+    }
+
+    @Test
+    @DisplayName("FAQ 저장 테스트")
+    void t4() {
+        Faq newFaq = Faq.builder()
+                .question("테스트 질문입니다")
+                .answer("테스트 답변입니다")
+                .build();
+
+        StepVerifier.create(faqRepository.save(newFaq))
+                .assertNext(saved -> {
+                    assertNotNull(saved.getId());
+                    assertEquals("테스트 질문입니다", saved.getQuestion());
+                    assertEquals("테스트 답변입니다", saved.getAnswer());
+                    System.out.println("저장된 FAQ: " + saved);
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("FAQ 전체 조회 테스트")
+    void t5() {
+        StepVerifier.create(faqRepository.findAll().collectList())
+                .assertNext(faqs -> {
+                    assertFalse(faqs.isEmpty());
+                    System.out.println("전체 FAQ 수: " + faqs.size());
+                })
+                .verifyComplete();
     }
 }
