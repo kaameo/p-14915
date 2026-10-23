@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: ${DATABASE_USERNAME:-faq}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-faq123}
     volumes:
-      - pgdata:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql
     restart: unless-stopped
   ollama:
     image: ollama/ollama:latest
@@ -18,5 +18,5 @@ services:
       - ollama-data:/data
     restart: unless-stopped
 volumes:
-  pgdata:
+  postgres_data:
   ollama-data:
